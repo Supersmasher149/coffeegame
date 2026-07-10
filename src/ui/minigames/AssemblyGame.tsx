@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { MinigameResult } from "../../types/game"
 import styles from "./MinigameOverlay.module.css"
 
@@ -13,7 +13,17 @@ export default function AssemblyGame({ order, onComplete }: AssemblyGameProps) {
   const [step, setStep] = useState(0)
   const [errors, setErrors] = useState(0)
   const [shake, setShake] = useState(false)
+  const completedRef = useRef(false)
   const options = useMemo(() => [...order].sort((a, b) => a.localeCompare(b)), [order])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (completedRef.current) return
+      completedRef.current = true
+      onComplete({ type: "cold", accuracy: 0.4 })
+    }, 8_000)
+    return () => window.clearTimeout(timer)
+  }, [onComplete])
 
   const add = (ingredient: string) => {
     if (ingredient !== order[step]) {
@@ -25,6 +35,7 @@ export default function AssemblyGame({ order, onComplete }: AssemblyGameProps) {
     const nextStep = step + 1
     setStep(nextStep)
     if (nextStep === order.length) {
+      completedRef.current = true
       window.setTimeout(() => onComplete({ type: "cold", accuracy: errors === 0 ? 1 : errors === 1 ? 0.74 : 0.4 }), 520)
     }
   }

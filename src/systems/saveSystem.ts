@@ -19,12 +19,23 @@ export const saveSnapshot = async (snapshot: GameSnapshot) => {
 
 export const migrateSnapshot = (saved: Partial<GameSnapshot>): GameSnapshot => {
   const defaults = createInitialSnapshot()
+  const legacyCafe = saved.cafe as (Partial<GameSnapshot["cafe"]> & { unlockedDecorations?: string[] }) | undefined
+  const { unlockedDecorations = [], ...savedCafe } = legacyCafe ?? {}
+  const migratedDecorations = unlockedDecorations.reduce<Record<string, number>>((owned, decorationId) => {
+    owned[decorationId] = (owned[decorationId] ?? 0) + 1
+    return owned
+  }, {})
   return {
     ...defaults,
     ...saved,
     version: defaults.version,
     player: { ...defaults.player, ...saved.player },
-    cafe: { ...defaults.cafe, ...saved.cafe, equipment: { ...defaults.cafe.equipment, ...saved.cafe?.equipment } },
+    cafe: {
+      ...defaults.cafe,
+      ...savedCafe,
+      ownedDecorations: { ...defaults.cafe.ownedDecorations, ...migratedDecorations, ...savedCafe.ownedDecorations },
+      equipment: { ...defaults.cafe.equipment, ...savedCafe.equipment },
+    },
     progression: { ...defaults.progression, ...saved.progression },
     dailyStats: { ...defaults.dailyStats, ...saved.dailyStats },
     settings: { ...defaults.settings, ...saved.settings },

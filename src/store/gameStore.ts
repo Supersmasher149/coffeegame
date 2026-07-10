@@ -128,7 +128,8 @@ const makeCustomer = (state: GameState, customerId: string, recipeId?: string): 
   if (!definition || !selectedRecipe || !canMakeRecipe(state, selectedRecipe)) return null
   const bonuses = getDecorationBonuses(state.cafe.decorations)
   const weatherCozy = state.weather === "rainy" || state.weather === "snowy" ? bonuses.cozy : 0
-  const patienceBoost = bonuses.patience + weatherCozy + getCatStrength(state, "greeter")
+  const stormyPatience = state.weather === "stormy" ? 0.25 : 0
+  const patienceBoost = bonuses.patience + weatherCozy + stormyPatience + getCatStrength(state, "greeter")
   const maxPatience = Math.round(definition.patienceBase * (1 + patienceBoost))
   return {
     id: `${customerId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,

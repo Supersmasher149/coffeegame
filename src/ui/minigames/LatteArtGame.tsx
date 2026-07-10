@@ -32,9 +32,8 @@ export default function LatteArtGame({ onComplete, pattern = "heart" }: LatteArt
     const y = (clientY - bounds.top) / bounds.height * 100
     setVisited((current) => {
       const next = new Set(current)
-      points.forEach(([px, py], index) => {
-        if (Math.hypot(px - x, py - y) < 10) next.add(index)
-      })
+      const [px, py] = points[current.size]
+      if (Math.hypot(px - x, py - y) < 10) next.add(current.size)
       return next
     })
   }

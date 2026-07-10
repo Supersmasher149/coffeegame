@@ -16,6 +16,7 @@ const targets: Record<string, [number, number]> = {
   "hot-chocolate": [0.72, 0.32],
   "chai-latte": [0.72, 0.42],
 }
+const defaultTarget: [number, number] = [0.75, 0.4]
 
 export default function MilkGame({ recipeId, onComplete }: MilkGameProps) {
   const [temperature, setTemperature] = useState(0.18)
@@ -25,7 +26,7 @@ export default function MilkGame({ recipeId, onComplete }: MilkGameProps) {
   const holdingRef = useRef(false)
   const valuesRef = useRef([temperature, foam])
   const completedRef = useRef(false)
-  const target = targets[recipeId] ?? [0.75, 0.4]
+  const target = targets[recipeId] ?? defaultTarget
 
   useEffect(() => {
     const startedAt = performance.now()

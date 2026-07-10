@@ -86,6 +86,12 @@ describe("game store", () => {
     expect(gameStore.getState().activeCustomers.some((customer) => customer.id === orderId)).toBe(false)
   })
 
+  it("gives stormy-weather arrivals extra patience", () => {
+    gameStore.setState((state) => ({ weather: "stormy", specialOpen: false }))
+    gameStore.getState().spawnCustomer("mei", "americano")
+    expect(gameStore.getState().activeCustomers[0].maxPatience).toBe(110)
+  })
+
   it("unlocks Rose's secret recipe at loyalty level two", () => {
     for (let visit = 0; visit < 2; visit += 1) {
       gameStore.getState().spawnCustomer("rose", "green-tea")
