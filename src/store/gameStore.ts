@@ -61,6 +61,17 @@ export interface GameActions {
 
 export type GameState = GameSnapshot & GameRuntimeState & GameActions
 
+export const GAME_TICK_MS = 700
+export const MIN_SPAWN_GAP = 5
+export const MAX_SPAWN_GAP = 20
+
+const spawnChanceByPhase = {
+  morning: 0.06,
+  midday: 0.045,
+  afternoon: 0.03,
+  closing: 0.075,
+} as const
+
 const runtimeDefaults: GameRuntimeState = {
   hydrated: false,
   started: false,
@@ -185,17 +196,22 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     if (minuteOfDay >= 1080) {
       return { minuteOfDay: 1080, activeCustomers: waiting, screen: "summary", toast: "The last cup is washed. Time to close.", lastSaved: new Date().toISOString() }
     }
-    const baseChance = minuteOfDay < 600 ? 0.055 : minuteOfDay < 840 ? 0.038 : minuteOfDay < 1020 ? 0.027 : 0.04
+    const phase = getTimePhase(minuteOfDay)
+    const baseChance = spawnChanceByPhase[phase]
     const weatherFactor = state.weather === "sunny" ? 1.1 : state.weather === "stormy" ? 0.7 : 1
     const decorationAttraction = getDecorationBonuses(state.cafe.decorations).attract
     const capacity = getCafeCapacity(state.cafe.decorations)
-    const shouldSpawn = waiting.length < capacity && minuteOfDay - state.lastSpawnMinute >= 8 && (Math.random() < baseChance * weatherFactor * (1 + decorationAttraction) || minuteOfDay - state.lastSpawnMinute >= 35)
+    const spawnGap = minuteOfDay - state.lastSpawnMinute
+    const forcedSpawn = spawnGap >= MAX_SPAWN_GAP
+    const shouldSpawn = waiting.length < capacity && spawnGap >= MIN_SPAWN_GAP && (Math.random() < baseChance * weatherFactor * (1 + decorationAttraction) || forcedSpawn)
     let activeCustomers = waiting
     let lastSpawnMinute = state.lastSpawnMinute
     if (shouldSpawn) {
-      const phase = getTimePhase(minuteOfDay)
       const activeIds = new Set(waiting.map((customer) => customer.customerId))
-      const eligible = customers.filter((customer) => customer.unlockLevel <= state.progression.level && !activeIds.has(customer.id) && Math.random() <= customer.visitFrequency && (customer.preferredTimes.includes(phase) || Math.random() < 0.2))
+      const available = customers.filter((customer) => customer.unlockLevel <= state.progression.level && !activeIds.has(customer.id))
+      const eligible = forcedSpawn
+        ? available
+        : available.filter((customer) => Math.random() <= customer.visitFrequency && (customer.preferredTimes.includes(phase) || Math.random() < 0.2))
       const selected = eligible[Math.floor(Math.random() * eligible.length)]
       if (selected) {
         const nextCustomer = makeCustomer({ ...state, minuteOfDay } as GameState, selected.id)
@@ -298,7 +314,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     return {
       inventory,
       activeOrderId: null,
-      activeCustomers: state.activeCustomers.map((customer) => customer.id === order.id ? { ...customer, status: "served", cleanupRemaining: Math.max(3, Math.round(8 * (1 - getCatStrength(state, "janitor")))) } : customer),
+      activeCustomers: state.activeCustomers.map((customer) => customer.id === order.id ? { ...customer, status: "served", cleanupRemaining: Math.max(1, Math.round(4 * (1 - getCatStrength(state, "janitor")))) } : customer),
       discoveredRecipes: [...state.discoveredRecipes, ...newlyDiscovered],
       recipeHistory: {
         ...state.recipeHistory,
