@@ -1,0 +1,24 @@
+.summary { position: fixed; z-index: 50; inset: 0; display: grid; padding: 1rem; overflow-y: auto; place-items: center; color: #fdf2df; background: #2f2928; }
+.summary::before { position: fixed; inset: 0; opacity: .12; background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 43px 43px; content: ""; }
+.moon { position: fixed; top: -8rem; right: -5rem; width: 26rem; height: 26rem; border-radius: 50%; background: #f4dba6; box-shadow: 0 0 8rem rgba(244,219,166,.2); }
+.summary > section { position: relative; z-index: 1; width: min(58rem, 100%); }
+.eyebrow { color: #d6a960; font-size: .68rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.summary h2 { max-width: 42rem; margin-bottom: 2rem; font-family: "Playfair Display", Georgia, serif; font-size: clamp(2.8rem, 7vw, 5.6rem); letter-spacing: -.06em; line-height: .95; }
+.stats { display: grid; margin-bottom: 1rem; grid-template-columns: repeat(4, 1fr); gap: .65rem; }
+.stats article { min-height: 9rem; padding: 1rem; border: 1px solid rgba(255,255,255,.12); border-radius: 1.1rem; background: rgba(255,255,255,.05); }
+.stats span,
+.stats strong,
+.stats small { display: block; }
+.stats span { min-height: 2.3rem; color: rgba(253,242,223,.55); font-size: .68rem; text-transform: uppercase; }
+.stats strong { margin-top: .7rem; color: #f1c96f; font-family: "Playfair Display", Georgia, serif; font-size: 2.4rem; }
+.stats small { color: rgba(253,242,223,.55); font-size: .65rem; }
+.notes { border-top: 1px solid rgba(255,255,255,.12); border-bottom: 1px solid rgba(255,255,255,.12); }
+.notes > div { display: grid; padding: .75rem 0; border-bottom: 1px solid rgba(255,255,255,.08); grid-template-columns: 12rem 1fr; }
+.notes > div:last-child { border: 0; }
+.notes span { color: rgba(253,242,223,.55); font-size: .7rem; }
+.notes strong { font-family: "Playfair Display", Georgia, serif; font-size: .9rem; }
+.summary footer { display: flex; margin-top: 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; }
+.summary footer p { margin: 0; color: rgba(253,242,223,.65); font-size: .78rem; }
+.summary footer button { min-height: 3.2rem; padding: .75rem 1.3rem; border: 0; border-radius: 999px; color: #382d28; background: #f1c96f; cursor: pointer; font-weight: 800; }
+
+@media (max-width: 650px) { .moon { width: 15rem; height: 15rem; } .stats { grid-template-columns: 1fr 1fr; } .stats article { min-height: 7rem; } .stats strong { font-size: 1.8rem; } .notes > div { grid-template-columns: 7.5rem 1fr; } .summary footer { align-items: stretch; flex-direction: column; } }

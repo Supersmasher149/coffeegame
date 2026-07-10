@@ -1,0 +1,127 @@
+.app {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 8% 10%, rgba(255, 249, 237, 0.8), transparent 24rem),
+    linear-gradient(145deg, #efe5d2, #e7d6bf);
+}
+
+.loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.4rem;
+}
+
+.game {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.scrim {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  padding: 1rem;
+  place-items: center;
+  background: rgba(45, 28, 23, 0.48);
+  backdrop-filter: blur(8px);
+}
+
+.dialogue {
+  width: min(30rem, 100%);
+  padding: 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 1.4rem;
+  background: var(--cream);
+  box-shadow: var(--shadow);
+}
+
+.speaker {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.portrait {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  place-items: center;
+  color: white;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.25rem;
+}
+
+.speaker strong,
+.speaker span {
+  display: block;
+}
+
+.speaker span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.quote {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.25rem;
+  line-height: 1.45;
+}
+
+.reward {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.8rem;
+  color: var(--sage-dark);
+  background: rgba(119, 139, 107, 0.12);
+  font-weight: 700;
+}
+
+.primary {
+  min-height: 2.8rem;
+  padding: 0.75rem 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  background: var(--terracotta);
+  box-shadow: 0 7px 18px rgba(166, 77, 61, 0.22);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.toast {
+  position: fixed;
+  z-index: 60;
+  right: 1rem;
+  bottom: 6.2rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  color: white;
+  background: rgba(62, 45, 39, 0.94);
+  box-shadow: 0 12px 32px rgba(54, 34, 27, 0.28);
+  animation: rise 260ms ease-out;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@media (max-width: 620px) {
+  .toast {
+    right: 50%;
+    bottom: 5.5rem;
+    width: max-content;
+    transform: translateX(50%);
+    text-align: center;
+  }
+}

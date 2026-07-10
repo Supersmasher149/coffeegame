@@ -1,0 +1,147 @@
+.overlay {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  padding: 1rem;
+  grid-template-rows: auto 1fr auto;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(215, 168, 79, 0.16), transparent 28rem),
+    #33241f;
+  color: var(--cream);
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  width: min(70rem, 100%);
+  min-height: 4rem;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header > div span,
+.header > div strong { display: block; }
+.header > div span { color: rgba(255, 249, 237, 0.52); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.header > div strong { font-family: "Playfair Display", Georgia, serif; font-size: 1.35rem; }
+.header ol { display: flex; margin: 0; padding: 0; list-style: none; gap: 1rem; }
+.header li { display: flex; align-items: center; gap: 0.35rem; color: rgba(255, 249, 237, 0.42); font-size: 0.7rem; }
+.header li i { display: grid; width: 1.5rem; height: 1.5rem; border: 1px solid currentColor; border-radius: 50%; place-items: center; font-size: 0.58rem; font-style: normal; }
+.header li.current { color: #f1ca79; }
+.header li.complete { color: #a6be99; }
+
+.board {
+  width: min(70rem, 100%);
+  min-height: 0;
+  max-height: 42rem;
+  margin: auto;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 2rem;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+}
+
+.gameBody,
+.artLayout,
+.assemblyLayout {
+  display: grid;
+  min-height: min(66vh, 39rem);
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.gameContent { max-width: 30rem; padding: clamp(1.5rem, 5vw, 4rem); }
+.kicker { margin-bottom: 0.45rem; color: var(--terracotta-dark); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+.gameContent h2 { margin-bottom: 0.6rem; font-family: "Playfair Display", Georgia, serif; font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -0.04em; }
+.gameContent > p:not(.kicker) { color: var(--muted); line-height: 1.6; }
+.appliance { position: relative; width: min(18rem, 65%); height: 24rem; margin: auto; overflow: hidden; border: 1.2rem solid #f8f0df; border-top-width: 3rem; border-radius: 4rem 4rem 6rem 6rem; background: #b8d2cf; box-shadow: inset 0 0 0 0.4rem rgba(73, 48, 38, 0.1), 0 2rem 4rem rgba(78, 48, 37, 0.16); }
+.appliance.grind { height: 18rem; border-radius: 8rem 8rem 3rem 3rem; background: #a87b5e; }
+.appliance.tea { height: 18rem; border-radius: 3rem 3rem 8rem 8rem; background: #c8dbd7; }
+.cupFill { position: absolute; right: 0; bottom: 0; left: 0; background: linear-gradient(#d8a455, #754632 20%, #4c2f27); transition: height 40ms linear; }
+.steam { position: absolute; z-index: 2; top: -2.5rem; right: 0; left: 0; display: flex; justify-content: center; gap: 1.2rem; }
+.steam i { width: 0.25rem; height: 2.2rem; border-radius: 50%; background: rgba(255,255,255,.6); animation: waft 1.5s ease-in-out infinite; }
+.steam i:nth-child(2) { animation-delay: 300ms; }
+.steam i:nth-child(3) { animation-delay: 600ms; }
+@keyframes waft { 50% { opacity: .2; transform: translate(4px, -7px) rotate(12deg); } }
+.timingBar { position: relative; height: 3.5rem; margin: 2rem 0 0.5rem; border-radius: 999px; background: #dacbb5; box-shadow: inset 0 2px 6px rgba(75,48,38,.12); }
+.goodZone,
+.perfectZone { position: absolute; top: 0; bottom: 0; }
+.goodZone { background: rgba(119, 139, 107, 0.35); }
+.perfectZone { background: rgba(215, 168, 79, 0.68); box-shadow: 0 0 1.4rem rgba(215,168,79,.65); }
+.timingBar > i { position: absolute; z-index: 2; top: -0.45rem; width: 0.45rem; height: 4.4rem; border-radius: 999px; background: var(--coffee-dark); box-shadow: 0 4px 10px rgba(62,45,39,.25); transform: translateX(-50%); }
+.liveResult { min-height: 1.5rem; color: var(--sage-dark); font-weight: 700; text-align: center; }
+.actionButton { width: 100%; min-height: 3.25rem; padding: 0.8rem 1rem; border: 0; border-radius: 999px; color: white; background: var(--terracotta); box-shadow: 0 10px 24px rgba(166, 77, 61, .22); cursor: pointer; font-weight: 700; user-select: none; touch-action: none; }
+.actionButton:disabled { cursor: default; opacity: .7; }
+.actionButton.holding { background: var(--sage-dark); transform: translateY(2px); }
+.pitcher { position: relative; width: min(20rem, 70%); height: 25rem; margin: auto; overflow: visible; border: 1.1rem solid #a8aaa5; border-top-width: 0.6rem; border-radius: 1.5rem 1.5rem 7rem 7rem; background: #d4d7d2; box-shadow: inset 1.2rem 0 2rem rgba(255,255,255,.35), 0 2rem 4rem rgba(78,48,37,.18); }
+.milkLevel { position: absolute; right: .7rem; bottom: .7rem; left: .7rem; border-radius: 1rem 1rem 5rem 5rem; transition: height 60ms linear; }
+.steamCloud { position: absolute; top: -4rem; right: 0; left: 0; display: flex; opacity: .2; justify-content: center; gap: 1.3rem; transition: opacity 200ms; }
+.steamCloud.activeSteam { opacity: .8; }
+.steamCloud i { width: .4rem; height: 4rem; border-radius: 50%; background: linear-gradient(transparent, white); animation: waft 1s ease-in-out infinite; }
+.milkGauge { position: relative; height: 13rem; margin: 1.3rem 0; border: 1px solid var(--line); border-radius: 1.2rem; background: linear-gradient(to top, rgba(119,139,107,.08), rgba(215,168,79,.15)); }
+.milkGauge::before,
+.milkGauge::after { position: absolute; content: ""; background: var(--line); }
+.milkGauge::before { top: 0; bottom: 0; left: 50%; width: 1px; }
+.milkGauge::after { top: 50%; right: 0; left: 0; height: 1px; }
+.milkGauge > i { position: absolute; z-index: 2; width: 1.1rem; height: 1.1rem; border: .28rem solid var(--cream); border-radius: 50%; background: var(--terracotta); box-shadow: 0 3px 10px rgba(62,45,39,.24); transform: translate(-50%, 50%); transition: left 50ms linear, bottom 50ms linear; }
+.milkTarget { position: absolute; width: 3.5rem; height: 3.5rem; border: .18rem dashed var(--sage); border-radius: 50%; transform: translate(-50%, 50%); }
+.milkGauge b,
+.milkGauge em { position: absolute; color: var(--muted); font-size: .65rem; font-style: normal; font-weight: 600; }
+.milkGauge b { right: .6rem; bottom: .35rem; }
+.milkGauge em { top: .5rem; left: .5rem; }
+.timer { width: 100%; height: .3rem; margin-bottom: .7rem; overflow: hidden; border-radius: 99px; background: #ded2c0; }
+.timer i { display: block; height: 100%; background: var(--gold); transition: width 50ms linear; }
+.latteSurface { position: relative; width: min(31rem, 80%); aspect-ratio: 1; margin: auto; overflow: hidden; border: 1.5rem solid #f8f0df; border-radius: 50%; background: radial-gradient(circle, #bd7b50, #8a5038 65%, #70412f); box-shadow: inset 0 0 4rem rgba(77,39,27,.42), 0 2rem 4rem rgba(78,48,37,.2); touch-action: none; }
+.latteSurface svg { width: 100%; height: 100%; filter: drop-shadow(0 0 .35rem rgba(255,247,207,.3)); }
+.artScore { position: relative; height: 2.4rem; margin: 1.5rem 0 .8rem; overflow: hidden; border-radius: 999px; background: #ded2c0; }
+.artScore i { display: block; height: 100%; background: rgba(119,139,107,.45); transition: width 180ms; }
+.artScore span { position: absolute; inset: 0; display: grid; place-items: center; font-size: .72rem; font-weight: 700; }
+.assemblyGlass { display: flex; width: min(16rem, 60%); height: 25rem; margin: auto; padding: 1.5rem .8rem .8rem; overflow: hidden; border: .8rem solid rgba(255,255,255,.7); border-top: 0; border-radius: 1rem 1rem 5rem 5rem; justify-content: flex-end; flex-direction: column-reverse; background: rgba(193,213,211,.35); box-shadow: 0 2rem 4rem rgba(78,48,37,.16); }
+.assemblyGlass i { display: block; width: 100%; transition: height 400ms ease; }
+.shake { animation: shake 260ms ease; }
+@keyframes shake { 25% { transform: translateX(-8px) rotate(-2deg); } 75% { transform: translateX(8px) rotate(2deg); } }
+.recipeStrip { display: flex; margin: 1.2rem 0; flex-wrap: wrap; gap: .4rem; }
+.recipeStrip span { padding: .45rem .65rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .7rem; }
+.recipeStrip span.done { border-color: rgba(119,139,107,.4); color: var(--sage-dark); background: rgba(119,139,107,.1); text-decoration: line-through; }
+.ingredients { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem; }
+.ingredients button { min-height: 3rem; padding: .65rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--cream); cursor: pointer; font-weight: 700; }
+.ingredients button:hover { border-color: var(--terracotta); }
+.errors { min-height: 1.5rem; margin-top: .8rem; color: var(--muted); font-size: .72rem; text-align: center; }
+.reassurance { margin: .75rem 0 0; color: rgba(255,249,237,.42); font-size: .68rem; text-align: center; }
+
+@media (max-width: 700px) {
+  .overlay { padding: .5rem; }
+  .header { min-height: 4.5rem; }
+  .header > div strong { font-size: 1rem; }
+  .header ol { gap: .35rem; }
+  .header li { font-size: 0; }
+  .header li i { font-size: .55rem; }
+  .board { border-radius: 1.3rem; }
+  .gameBody,
+  .artLayout,
+  .assemblyLayout { min-height: max(34rem, calc(100dvh - 8rem)); grid-template-columns: 1fr; grid-template-rows: minmax(12rem, 42%) 1fr; }
+  .gameContent { padding: 1rem 1.2rem 1.3rem; }
+  .gameContent h2 { font-size: 2rem; }
+  .gameContent > p:not(.kicker) { margin-bottom: .6rem; font-size: .82rem; }
+  .appliance { width: 8.5rem; height: 11rem; border-width: .65rem; border-top-width: 1.5rem; }
+  .appliance.grind,
+  .appliance.tea { height: 9rem; }
+  .timingBar { height: 2.5rem; margin: 1rem 0 .2rem; }
+  .timingBar > i { height: 3.2rem; }
+  .pitcher { width: 8.5rem; height: 11rem; border-width: .65rem; }
+  .milkGauge { height: 7rem; margin: .7rem 0; }
+  .latteSurface { width: min(15rem, 60vw); border-width: .8rem; }
+  .assemblyGlass { width: 7rem; height: 12rem; border-width: .45rem; }
+  .reassurance { display: none; }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .board { min-height: 30rem; }
+  .gameBody,
+  .artLayout,
+  .assemblyLayout { min-height: 30rem; grid-template-columns: .8fr 1.2fr; grid-template-rows: 1fr; }
+}
