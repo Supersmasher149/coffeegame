@@ -8,12 +8,14 @@ import { getUnlockedRecipes, recipeById } from "../data/recipes"
 import { equipmentUpgrades } from "../data/upgrades"
 import {
   calculateSale,
+  canAutomateStep,
   canPlaceDecoration,
   createInitialSnapshot,
   createNextDay,
   getDecorationBonuses,
   getCafeCapacity,
   getDailySaleIngredientIds,
+  getAutomatedAccuracy,
   getReputationLevel,
   getTimePhase,
   scoreDrink,
@@ -44,6 +46,7 @@ export interface GameActions {
   spawnCustomer: (customerId?: string, recipeId?: string) => void
   acceptOrder: (orderId: string) => void
   recordMinigameResult: (result: MinigameResult) => void
+  automateCurrentStep: () => void
   chooseDailySpecial: (recipeId: string) => void
   skipDailySpecial: () => void
   purchaseIngredient: (ingredientId: string) => void
@@ -60,6 +63,17 @@ export interface GameActions {
 }
 
 export type GameState = GameSnapshot & GameRuntimeState & GameActions
+
+export const GAME_TICK_MS = 700
+export const MIN_SPAWN_GAP = 5
+export const MAX_SPAWN_GAP = 20
+
+const spawnChanceByPhase = {
+  morning: 0.06,
+  midday: 0.045,
+  afternoon: 0.03,
+  closing: 0.075,
+} as const
 
 const runtimeDefaults: GameRuntimeState = {
   hydrated: false,
@@ -185,17 +199,22 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     if (minuteOfDay >= 1080) {
       return { minuteOfDay: 1080, activeCustomers: waiting, screen: "summary", toast: "The last cup is washed. Time to close.", lastSaved: new Date().toISOString() }
     }
-    const baseChance = minuteOfDay < 600 ? 0.055 : minuteOfDay < 840 ? 0.038 : minuteOfDay < 1020 ? 0.027 : 0.04
+    const phase = getTimePhase(minuteOfDay)
+    const baseChance = spawnChanceByPhase[phase]
     const weatherFactor = state.weather === "sunny" ? 1.1 : state.weather === "stormy" ? 0.7 : 1
     const decorationAttraction = getDecorationBonuses(state.cafe.decorations).attract
     const capacity = getCafeCapacity(state.cafe.decorations)
-    const shouldSpawn = waiting.length < capacity && minuteOfDay - state.lastSpawnMinute >= 8 && (Math.random() < baseChance * weatherFactor * (1 + decorationAttraction) || minuteOfDay - state.lastSpawnMinute >= 35)
+    const spawnGap = minuteOfDay - state.lastSpawnMinute
+    const forcedSpawn = spawnGap >= MAX_SPAWN_GAP
+    const shouldSpawn = waiting.length < capacity && spawnGap >= MIN_SPAWN_GAP && (Math.random() < baseChance * weatherFactor * (1 + decorationAttraction) || forcedSpawn)
     let activeCustomers = waiting
     let lastSpawnMinute = state.lastSpawnMinute
     if (shouldSpawn) {
-      const phase = getTimePhase(minuteOfDay)
       const activeIds = new Set(waiting.map((customer) => customer.customerId))
-      const eligible = customers.filter((customer) => customer.unlockLevel <= state.progression.level && !activeIds.has(customer.id) && Math.random() <= customer.visitFrequency && (customer.preferredTimes.includes(phase) || Math.random() < 0.2))
+      const available = customers.filter((customer) => customer.unlockLevel <= state.progression.level && !activeIds.has(customer.id))
+      const eligible = forcedSpawn
+        ? available
+        : available.filter((customer) => Math.random() <= customer.visitFrequency && (customer.preferredTimes.includes(phase) || Math.random() < 0.2))
       const selected = eligible[Math.floor(Math.random() * eligible.length)]
       if (selected) {
         const nextCustomer = makeCustomer({ ...state, minuteOfDay } as GameState, selected.id)
@@ -236,6 +255,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     const order = state.activeCustomers.find((customer) => customer.id === state.activeOrderId)
     if (!order) return { activeOrderId: null }
     const recipe = recipeById[order.recipeId]
+    if (recipe.minigames[order.minigameStep] !== result.type) return { toast: "That station is not ready for this step." }
     const results = [...order.results, result]
     if (results.length < recipe.minigames.length) {
       return { activeCustomers: state.activeCustomers.map((customer) => customer.id === order.id ? { ...customer, results, minigameStep: customer.minigameStep + 1 } : customer) }
@@ -243,6 +263,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
 
     const definition = customerById[order.customerId]
     const equipmentBonus = results.reduce((bonus, minigame) => {
+      if (minigame.automated) return bonus
       if (minigame.type === "espresso" && state.cafe.equipment.espressoMachine > 1) return bonus + 0.04
       if (minigame.type === "milk" && state.cafe.equipment.milkFrother > 1) return bonus + 0.04
       if (minigame.type === "grind" && state.cafe.equipment.grinder > 1) return bonus + 0.04
@@ -250,7 +271,8 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
       return bonus
     }, 0)
     const milestoneBonus = state.progression.milestones.includes("experienced-barista") ? 0.05 : 0
-    const score = scoreDrink(results, getCatStrength(state, "barista") + equipmentBonus / results.length + milestoneBonus)
+    const manualShare = results.filter((result) => !result.automated).length / results.length
+    const score = scoreDrink(results, getCatStrength(state, "barista") * manualShare + equipmentBonus / results.length + milestoneBonus)
     const bonuses = getDecorationBonuses(state.cafe.decorations)
     const preference = definition.favoriteDrinks.includes(recipe.id) ? "favorite" : definition.dislikedDrinks.includes(recipe.id) ? "disliked" : "neutral"
     const sale = calculateSale(recipe, score, {
@@ -298,7 +320,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     return {
       inventory,
       activeOrderId: null,
-      activeCustomers: state.activeCustomers.map((customer) => customer.id === order.id ? { ...customer, status: "served", cleanupRemaining: Math.max(3, Math.round(8 * (1 - getCatStrength(state, "janitor")))) } : customer),
+      activeCustomers: state.activeCustomers.map((customer) => customer.id === order.id ? { ...customer, status: "served", cleanupRemaining: Math.max(1, Math.round(4 * (1 - getCatStrength(state, "janitor")))) } : customer),
       discoveredRecipes: [...state.discoveredRecipes, ...newlyDiscovered],
       recipeHistory: {
         ...state.recipeHistory,
@@ -335,6 +357,22 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
       lastSaved: new Date().toISOString(),
     }
   }),
+  automateCurrentStep: () => {
+    const state = get()
+    const order = state.activeCustomers.find((customer) => customer.id === state.activeOrderId)
+    if (!order) return
+    const recipe = recipeById[order.recipeId]
+    const timesServed = state.recipeHistory[recipe.id]?.timesServed ?? 0
+    if (!canAutomateStep(recipe, order.minigameStep, state.cafe.equipment, timesServed)) {
+      set(() => ({ toast: "This recipe still needs a practiced hand at this station." }))
+      return
+    }
+    state.recordMinigameResult({
+      type: recipe.minigames[order.minigameStep],
+      accuracy: getAutomatedAccuracy(getCatStrength(state, "barista")),
+      automated: true,
+    })
+  },
   chooseDailySpecial: (recipeId) => set((state) => {
     if (!state.discoveredRecipes.includes(recipeId) || !canMakeRecipe(state, recipeId)) return { toast: "Restock this recipe before putting it on the chalkboard." }
     const openingGuest = state.progression.dayNumber === 1 && state.activeCustomers.length === 0 ? makeCustomer(state, "mei", "americano") : null

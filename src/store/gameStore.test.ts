@@ -1,9 +1,13 @@
 import { createInitialSnapshot } from "../systems/gameRules"
-import { gameStore, getGameSnapshot } from "./gameStore"
+import { gameStore, getGameSnapshot, MAX_SPAWN_GAP, MIN_SPAWN_GAP } from "./gameStore"
 
 describe("game store", () => {
   beforeEach(() => {
     gameStore.getState().hydrate(createInitialSnapshot())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it("settles a completed order and advances progression totals", () => {
@@ -17,7 +21,7 @@ describe("game store", () => {
     expect(gameStore.getState().activeCustomers[0].status).toBe("served")
     gameStore.getState().dismissDialogue()
     gameStore.setState({ specialOpen: false })
-    for (let second = 0; second < 8; second += 1) gameStore.getState().tick()
+    for (let tick = 0; tick < 4; tick += 1) gameStore.getState().tick()
     expect(gameStore.getState().activeCustomers.some((customer) => customer.id === order.id)).toBe(false)
   })
 
@@ -73,6 +77,40 @@ describe("game store", () => {
     expect(gameStore.getState().activeCustomers[0].status).toBe("served")
   })
 
+  it("uses station assistance for mastered routine steps and keeps latte art manual", () => {
+    gameStore.setState((state) => ({
+      cafe: { ...state.cafe, equipment: { ...state.cafe.equipment, espressoMachine: 2, milkFrother: 2 } },
+      progression: { ...state.progression, level: 2, reputation: 50 },
+      recipeHistory: { ...state.recipeHistory, latte: { bestQuality: 0.9, timesServed: 6, averageQuality: 0.8 } },
+    }))
+    gameStore.getState().spawnCustomer("kai", "latte")
+    const orderId = gameStore.getState().activeCustomers[0].id
+    gameStore.getState().acceptOrder(orderId)
+
+    gameStore.getState().automateCurrentStep()
+    gameStore.getState().automateCurrentStep()
+    const preparing = gameStore.getState().activeCustomers[0]
+    expect(preparing.minigameStep).toBe(2)
+    expect(preparing.results).toEqual([
+      { type: "espresso", accuracy: 0.82, automated: true },
+      { type: "milk", accuracy: 0.82, automated: true },
+    ])
+
+    gameStore.getState().automateCurrentStep()
+    expect(gameStore.getState().activeCustomers[0].minigameStep).toBe(2)
+    gameStore.getState().recordMinigameResult({ type: "latteArt", accuracy: 0.95 })
+    expect(gameStore.getState().activeCustomers[0].status).toBe("served")
+  })
+
+  it("rejects results for the wrong preparation step", () => {
+    gameStore.getState().spawnCustomer("kai", "latte")
+    const orderId = gameStore.getState().activeCustomers[0].id
+    gameStore.getState().acceptOrder(orderId)
+    gameStore.getState().recordMinigameResult({ type: "milk", accuracy: 1 })
+    expect(gameStore.getState().activeCustomers[0].results).toHaveLength(0)
+    expect(gameStore.getState().activeCustomers[0].minigameStep).toBe(0)
+  })
+
   it("uses Biscuit to clear a served table faster", () => {
     gameStore.setState((state) => ({ progression: { ...state.progression, level: 3, reputation: 150 }, specialOpen: false }))
     gameStore.getState().spawnCustomer("mei", "americano")
@@ -80,10 +118,33 @@ describe("game store", () => {
     gameStore.getState().acceptOrder(orderId)
     gameStore.getState().recordMinigameResult({ type: "espresso", accuracy: 0.95 })
     gameStore.getState().dismissDialogue()
-    expect(gameStore.getState().activeCustomers[0].cleanupRemaining).toBe(4)
+    expect(gameStore.getState().activeCustomers[0].cleanupRemaining).toBe(2)
     gameStore.setState((state) => ({ lastSpawnMinute: state.minuteOfDay }))
-    for (let second = 0; second < 4; second += 1) gameStore.getState().tick()
+    for (let tick = 0; tick < 2; tick += 1) gameStore.getState().tick()
     expect(gameStore.getState().activeCustomers.some((customer) => customer.id === orderId)).toBe(false)
+  })
+
+  it("does not spawn customers before the minimum gap", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0)
+    gameStore.setState((state) => ({ specialOpen: false, activeCustomers: [], lastSpawnMinute: state.minuteOfDay }))
+
+    for (let tick = 1; tick < MIN_SPAWN_GAP; tick += 1) gameStore.getState().tick()
+    expect(gameStore.getState().activeCustomers).toHaveLength(0)
+
+    gameStore.getState().tick()
+    expect(gameStore.getState().activeCustomers).toHaveLength(1)
+  })
+
+  it("forces an available customer at the maximum gap", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.999)
+    gameStore.setState((state) => ({
+      specialOpen: false,
+      activeCustomers: [],
+      lastSpawnMinute: state.minuteOfDay - MAX_SPAWN_GAP + 1,
+    }))
+
+    gameStore.getState().tick()
+    expect(gameStore.getState().activeCustomers).toHaveLength(1)
   })
 
   it("gives stormy-weather arrivals extra patience", () => {

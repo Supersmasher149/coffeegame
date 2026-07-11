@@ -118,6 +118,7 @@ export interface ActiveCustomer {
 export interface MinigameResult {
   type: MinigameType
   accuracy: number
+  automated?: boolean
 }
 
 export interface DrinkScore {

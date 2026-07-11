@@ -45,6 +45,24 @@
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
 }
 
+.assist {
+  display: flex;
+  width: min(70rem, 100%);
+  margin: .35rem auto .75rem;
+  padding: .65rem .8rem .65rem 1rem;
+  border: 1px solid rgba(241, 202, 121, .35);
+  border-radius: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(241, 202, 121, .08);
+}
+.assist strong,
+.assist span { display: block; }
+.assist strong { color: #f1ca79; font-size: .8rem; }
+.assist span { margin-top: .15rem; color: rgba(255, 249, 237, .62); font-size: .7rem; }
+.assist button { padding: .65rem 1rem; border: 0; border-radius: 999px; color: #33241f; background: #f1ca79; cursor: pointer; font-weight: 800; white-space: nowrap; }
+
 .gameBody,
 .artLayout,
 .assemblyLayout {
@@ -121,6 +139,8 @@
   .header li { font-size: 0; }
   .header li i { font-size: .55rem; }
   .board { border-radius: 1.3rem; }
+  .assist { align-items: stretch; flex-direction: column; }
+  .assist button { width: 100%; }
   .gameBody,
   .artLayout,
   .assemblyLayout { min-height: max(34rem, calc(100dvh - 8rem)); grid-template-columns: 1fr; grid-template-rows: minmax(12rem, 42%) 1fr; }

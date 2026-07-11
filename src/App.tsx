@@ -3,7 +3,7 @@ import styles from "./App.module.css"
 import { customerById } from "./data/customers"
 import { playTone, syncAudioSettings } from "./systems/audioSystem"
 import { loadSnapshot, saveSnapshot } from "./systems/saveSystem"
-import { gameStore, getGameSnapshot, useGameStore } from "./store/gameStore"
+import { GAME_TICK_MS, gameStore, getGameSnapshot, useGameStore } from "./store/gameStore"
 import type { GameSnapshot } from "./types/game"
 import CatCollection from "./ui/CatCollection"
 import DailySpecial from "./ui/DailySpecial"
@@ -50,7 +50,7 @@ export default function App() {
 
   useEffect(() => {
     if (!started) return
-    const timer = window.setInterval(tick, 1000)
+    const timer = window.setInterval(tick, GAME_TICK_MS)
     return () => window.clearInterval(timer)
   }, [started, tick])
 
