@@ -1,6 +1,7 @@
 import { customerById } from "../data/customers"
 import { ingredientById } from "../data/ingredients"
 import { recipeById, recipes } from "../data/recipes"
+import { ASSIST_MASTERY_SERVES } from "../systems/gameRules"
 import { useGameStore } from "../store/gameStore"
 import panel from "./FeaturePanel.module.css"
 import styles from "./RecipeBook.module.css"
@@ -20,6 +21,8 @@ export default function RecipeBook() {
         <div className={styles.book}>
           {recipes.map((recipe, index) => {
             const unlocked = discovered.includes(recipe.id)
+            const timesServed = history[recipe.id]?.timesServed ?? 0
+            const mastery = timesServed >= ASSIST_MASTERY_SERVES ? "Station assist mastered" : `${Math.min(timesServed, ASSIST_MASTERY_SERVES)} / ${ASSIST_MASTERY_SERVES} mastery`
             const favoriteCustomers = Object.values(customerById).filter((customer) => customer.favoriteDrinks.includes(recipe.id))
             return (
               <article className={`${styles.recipe} ${!unlocked ? styles.locked : ""}`} key={recipe.id}>
@@ -31,9 +34,10 @@ export default function RecipeBook() {
                   <p>{unlocked ? recipe.description : "Keep building your neighborhood reputation to reveal this page."}</p>
                   {unlocked && <div className={styles.ingredients}>{recipe.ingredients.map((item) => <span key={item.ingredientId}>{ingredientById[item.ingredientId].name}</span>)}</div>}
                   {unlocked && favoriteCustomers.length > 0 && <small>Loved by {favoriteCustomers.map((customer) => customer.name).join(", ")}</small>}
+                  {unlocked && <small>{mastery}</small>}
                 </div>
                 <div className={styles.stats}>
-                  <strong>{history[recipe.id]?.timesServed ?? 0}</strong><span>served</span>
+                  <strong>{timesServed}</strong><span>served</span>
                   <strong>{history[recipe.id] ? `${Math.round(history[recipe.id].bestQuality * 100)}%` : "--"}</strong><span>best</span>
                   <b>{recipeById[recipe.id].basePrice} coins</b>
                 </div>

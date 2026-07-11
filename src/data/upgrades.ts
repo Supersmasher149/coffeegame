@@ -10,8 +10,8 @@ export interface EquipmentUpgrade {
 }
 
 export const equipmentUpgrades: EquipmentUpgrade[] = [
-  { id: "espressoMachine", name: "Better Espresso Machine", description: "A steadier pressure profile adds a small accuracy bonus to extraction.", cost: 100, unlockLevel: 2, maxLevel: 2 },
-  { id: "milkFrother", name: "Milk Frother Pro", description: "A finer steam tip makes silky milk easier to texture.", cost: 80, unlockLevel: 2, maxLevel: 2 },
-  { id: "coldBrewStation", name: "Cold Brew Station", description: "A tidy dedicated station improves cold-drink assembly.", cost: 60, unlockLevel: 3, maxLevel: 1 },
-  { id: "grinder", name: "Grind Control", description: "More precise burr alignment improves grind-size accuracy.", cost: 70, unlockLevel: 3, maxLevel: 2 },
+  { id: "espressoMachine", name: "Better Espresso Machine", description: "Improves manual extraction and assists routine shots in practiced recipes at level 2.", cost: 100, unlockLevel: 2, maxLevel: 2 },
+  { id: "milkFrother", name: "Milk Frother Pro", description: "Improves manual steaming and assists routine milk steps in practiced recipes at level 2.", cost: 80, unlockLevel: 2, maxLevel: 2 },
+  { id: "coldBrewStation", name: "Cold Brew Station", description: "Improves cold assembly and assists routine assembly when another step remains manual.", cost: 60, unlockLevel: 3, maxLevel: 1 },
+  { id: "grinder", name: "Grind Control", description: "Improves manual grinding and assists routine grinds in practiced recipes at level 2.", cost: 70, unlockLevel: 3, maxLevel: 2 },
 ]

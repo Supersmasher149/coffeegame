@@ -4,8 +4,10 @@ import { decorations, decorationById } from "../data/decorations"
 import { ingredients } from "../data/ingredients"
 import { getUnlockedRecipes } from "../data/recipes"
 import type {
+  CafeState,
   DrinkScore,
   GameSnapshot,
+  MinigameType,
   MinigameResult,
   PlacedDecoration,
   Recipe,
@@ -17,6 +19,40 @@ import type {
 export const REPUTATION_LEVELS = [0, 50, 150, 350, 600, 1000] as const
 export const REPUTATION_NAMES = ["Neighborhood Cart", "Small Cafe", "Popular Coffee Shop", "Local Favorite", "City Landmark", "Famous Destination"] as const
 export const seasons: Season[] = ["spring", "summer", "autumn", "winter"]
+export const ASSIST_MASTERY_SERVES = 6
+
+const equipmentForStep: Partial<Record<MinigameType, keyof CafeState["equipment"]>> = {
+  espresso: "espressoMachine",
+  milk: "milkFrother",
+  grind: "grinder",
+  cold: "coldBrewStation",
+}
+
+const requiredEquipmentLevel: Partial<Record<MinigameType, number>> = {
+  espresso: 2,
+  milk: 2,
+  grind: 2,
+  cold: 1,
+}
+
+export const getSignatureStepIndex = (recipe: Recipe) => {
+  if (recipe.minigames.length === 1) return 0
+  for (const type of ["latteArt", "cold", "tea"] as const) {
+    const index = recipe.minigames.indexOf(type)
+    if (index >= 0) return index
+  }
+  return recipe.minigames.length - 1
+}
+
+export const canAutomateStep = (recipe: Recipe, stepIndex: number, equipment: CafeState["equipment"], timesServed: number) => {
+  const type = recipe.minigames[stepIndex]
+  const equipmentId = equipmentForStep[type]
+  return timesServed >= ASSIST_MASTERY_SERVES
+    && stepIndex !== getSignatureStepIndex(recipe)
+    && Boolean(equipmentId && equipment[equipmentId] >= (requiredEquipmentLevel[type] ?? Infinity))
+}
+
+export const getAutomatedAccuracy = (baristaStrength: number) => Math.min(0.82, 0.77 + Math.min(0.05, baristaStrength))
 
 export const getReputationLevel = (reputation: number) => {
   for (let index = REPUTATION_LEVELS.length - 1; index >= 0; index -= 1) {

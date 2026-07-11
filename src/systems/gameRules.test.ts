@@ -1,5 +1,5 @@
 import { recipes } from "../data/recipes"
-import { calculateSale, canPlaceDecoration, createInitialSnapshot, createNextDay, getCafeCapacity, getReputationLevel, scoreDrink } from "./gameRules"
+import { ASSIST_MASTERY_SERVES, calculateSale, canAutomateStep, canPlaceDecoration, createInitialSnapshot, createNextDay, getAutomatedAccuracy, getCafeCapacity, getReputationLevel, getSignatureStepIndex, scoreDrink } from "./gameRules"
 
 describe("game rules", () => {
   it("maps reputation thresholds to levels", () => {
@@ -42,5 +42,24 @@ describe("game rules", () => {
       { id: "stool-2", decorationId: "counter-stool", gridX: 3, gridY: 2, rotation: 0 },
       { id: "table", decorationId: "wooden-table", gridX: 4, gridY: 2, rotation: 0 },
     ])).toBe(4)
+  })
+
+  it("keeps a manual signature step in every recipe", () => {
+    const equipment = { espressoMachine: 2, milkFrother: 2, coldBrewStation: 1, grinder: 2 }
+    for (const recipe of recipes) {
+      const signature = getSignatureStepIndex(recipe)
+      expect(signature).toBeGreaterThanOrEqual(0)
+      expect(canAutomateStep(recipe, signature, equipment, ASSIST_MASTERY_SERVES)).toBe(false)
+    }
+  })
+
+  it("requires mastery and upgraded equipment for routine assistance", () => {
+    const latte = recipes.find((recipe) => recipe.id === "latte")!
+    const basic = { espressoMachine: 1, milkFrother: 1, coldBrewStation: 0, grinder: 1 }
+    const upgraded = { espressoMachine: 2, milkFrother: 2, coldBrewStation: 1, grinder: 2 }
+    expect(canAutomateStep(latte, 0, upgraded, ASSIST_MASTERY_SERVES - 1)).toBe(false)
+    expect(canAutomateStep(latte, 0, basic, ASSIST_MASTERY_SERVES)).toBe(false)
+    expect(canAutomateStep(latte, 0, upgraded, ASSIST_MASTERY_SERVES)).toBe(true)
+    expect(getAutomatedAccuracy(0.5)).toBe(0.82)
   })
 })

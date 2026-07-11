@@ -8,12 +8,14 @@ import { getUnlockedRecipes, recipeById } from "../data/recipes"
 import { equipmentUpgrades } from "../data/upgrades"
 import {
   calculateSale,
+  canAutomateStep,
   canPlaceDecoration,
   createInitialSnapshot,
   createNextDay,
   getDecorationBonuses,
   getCafeCapacity,
   getDailySaleIngredientIds,
+  getAutomatedAccuracy,
   getReputationLevel,
   getTimePhase,
   scoreDrink,
@@ -44,6 +46,7 @@ export interface GameActions {
   spawnCustomer: (customerId?: string, recipeId?: string) => void
   acceptOrder: (orderId: string) => void
   recordMinigameResult: (result: MinigameResult) => void
+  automateCurrentStep: () => void
   chooseDailySpecial: (recipeId: string) => void
   skipDailySpecial: () => void
   purchaseIngredient: (ingredientId: string) => void
@@ -252,6 +255,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     const order = state.activeCustomers.find((customer) => customer.id === state.activeOrderId)
     if (!order) return { activeOrderId: null }
     const recipe = recipeById[order.recipeId]
+    if (recipe.minigames[order.minigameStep] !== result.type) return { toast: "That station is not ready for this step." }
     const results = [...order.results, result]
     if (results.length < recipe.minigames.length) {
       return { activeCustomers: state.activeCustomers.map((customer) => customer.id === order.id ? { ...customer, results, minigameStep: customer.minigameStep + 1 } : customer) }
@@ -259,6 +263,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
 
     const definition = customerById[order.customerId]
     const equipmentBonus = results.reduce((bonus, minigame) => {
+      if (minigame.automated) return bonus
       if (minigame.type === "espresso" && state.cafe.equipment.espressoMachine > 1) return bonus + 0.04
       if (minigame.type === "milk" && state.cafe.equipment.milkFrother > 1) return bonus + 0.04
       if (minigame.type === "grind" && state.cafe.equipment.grinder > 1) return bonus + 0.04
@@ -266,7 +271,8 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
       return bonus
     }, 0)
     const milestoneBonus = state.progression.milestones.includes("experienced-barista") ? 0.05 : 0
-    const score = scoreDrink(results, getCatStrength(state, "barista") + equipmentBonus / results.length + milestoneBonus)
+    const manualShare = results.filter((result) => !result.automated).length / results.length
+    const score = scoreDrink(results, getCatStrength(state, "barista") * manualShare + equipmentBonus / results.length + milestoneBonus)
     const bonuses = getDecorationBonuses(state.cafe.decorations)
     const preference = definition.favoriteDrinks.includes(recipe.id) ? "favorite" : definition.dislikedDrinks.includes(recipe.id) ? "disliked" : "neutral"
     const sale = calculateSale(recipe, score, {
@@ -351,6 +357,22 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
       lastSaved: new Date().toISOString(),
     }
   }),
+  automateCurrentStep: () => {
+    const state = get()
+    const order = state.activeCustomers.find((customer) => customer.id === state.activeOrderId)
+    if (!order) return
+    const recipe = recipeById[order.recipeId]
+    const timesServed = state.recipeHistory[recipe.id]?.timesServed ?? 0
+    if (!canAutomateStep(recipe, order.minigameStep, state.cafe.equipment, timesServed)) {
+      set(() => ({ toast: "This recipe still needs a practiced hand at this station." }))
+      return
+    }
+    state.recordMinigameResult({
+      type: recipe.minigames[order.minigameStep],
+      accuracy: getAutomatedAccuracy(getCatStrength(state, "barista")),
+      automated: true,
+    })
+  },
   chooseDailySpecial: (recipeId) => set((state) => {
     if (!state.discoveredRecipes.includes(recipeId) || !canMakeRecipe(state, recipeId)) return { toast: "Restock this recipe before putting it on the chalkboard." }
     const openingGuest = state.progression.dayNumber === 1 && state.activeCustomers.length === 0 ? makeCustomer(state, "mei", "americano") : null

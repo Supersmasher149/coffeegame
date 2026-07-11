@@ -77,6 +77,40 @@ describe("game store", () => {
     expect(gameStore.getState().activeCustomers[0].status).toBe("served")
   })
 
+  it("uses station assistance for mastered routine steps and keeps latte art manual", () => {
+    gameStore.setState((state) => ({
+      cafe: { ...state.cafe, equipment: { ...state.cafe.equipment, espressoMachine: 2, milkFrother: 2 } },
+      progression: { ...state.progression, level: 2, reputation: 50 },
+      recipeHistory: { ...state.recipeHistory, latte: { bestQuality: 0.9, timesServed: 6, averageQuality: 0.8 } },
+    }))
+    gameStore.getState().spawnCustomer("kai", "latte")
+    const orderId = gameStore.getState().activeCustomers[0].id
+    gameStore.getState().acceptOrder(orderId)
+
+    gameStore.getState().automateCurrentStep()
+    gameStore.getState().automateCurrentStep()
+    const preparing = gameStore.getState().activeCustomers[0]
+    expect(preparing.minigameStep).toBe(2)
+    expect(preparing.results).toEqual([
+      { type: "espresso", accuracy: 0.82, automated: true },
+      { type: "milk", accuracy: 0.82, automated: true },
+    ])
+
+    gameStore.getState().automateCurrentStep()
+    expect(gameStore.getState().activeCustomers[0].minigameStep).toBe(2)
+    gameStore.getState().recordMinigameResult({ type: "latteArt", accuracy: 0.95 })
+    expect(gameStore.getState().activeCustomers[0].status).toBe("served")
+  })
+
+  it("rejects results for the wrong preparation step", () => {
+    gameStore.getState().spawnCustomer("kai", "latte")
+    const orderId = gameStore.getState().activeCustomers[0].id
+    gameStore.getState().acceptOrder(orderId)
+    gameStore.getState().recordMinigameResult({ type: "milk", accuracy: 1 })
+    expect(gameStore.getState().activeCustomers[0].results).toHaveLength(0)
+    expect(gameStore.getState().activeCustomers[0].minigameStep).toBe(0)
+  })
+
   it("uses Biscuit to clear a served table faster", () => {
     gameStore.setState((state) => ({ progression: { ...state.progression, level: 3, reputation: 150 }, specialOpen: false }))
     gameStore.getState().spawnCustomer("mei", "americano")
