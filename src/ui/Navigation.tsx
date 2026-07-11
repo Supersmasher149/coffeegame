@@ -4,6 +4,7 @@ import styles from "./Navigation.module.css"
 
 const links: Array<{ screen: AppScreen; label: string; mark: string }> = [
   { screen: "cafe", label: "Cafe", mark: "C" },
+  { screen: "map", label: "Map", mark: "T" },
   { screen: "recipes", label: "Recipes", mark: "R" },
   { screen: "shop", label: "Shop", mark: "$" },
   { screen: "decorate", label: "Decorate", mark: "D" },

@@ -3,6 +3,7 @@ import { customers } from "../data/customers"
 import { decorations, decorationById } from "../data/decorations"
 import { ingredients } from "../data/ingredients"
 import { getUnlockedRecipes } from "../data/recipes"
+import { cafeLevels, chapters, getCafeLevel } from "../data/progression"
 import type {
   CafeState,
   DrinkScore,
@@ -16,8 +17,8 @@ import type {
   Weather,
 } from "../types/game"
 
-export const REPUTATION_LEVELS = [0, 50, 150, 350, 600, 1000] as const
-export const REPUTATION_NAMES = ["Neighborhood Cart", "Small Cafe", "Popular Coffee Shop", "Local Favorite", "City Landmark", "Famous Destination"] as const
+export const REPUTATION_LEVELS = cafeLevels.map((level) => level.reputationRequired)
+export const REPUTATION_NAMES = cafeLevels.map((level) => level.name)
 export const seasons: Season[] = ["spring", "summer", "autumn", "winter"]
 export const ASSIST_MASTERY_SERVES = 6
 
@@ -54,12 +55,7 @@ export const canAutomateStep = (recipe: Recipe, stepIndex: number, equipment: Ca
 
 export const getAutomatedAccuracy = (baristaStrength: number) => Math.min(0.82, 0.77 + Math.min(0.05, baristaStrength))
 
-export const getReputationLevel = (reputation: number) => {
-  for (let index = REPUTATION_LEVELS.length - 1; index >= 0; index -= 1) {
-    if (reputation >= REPUTATION_LEVELS[index]) return index + 1
-  }
-  return 1
-}
+export const getReputationLevel = (reputation: number) => getCafeLevel(reputation).level
 
 export const getTimePhase = (minuteOfDay: number) => {
   if (minuteOfDay < 600) return "morning" as const
@@ -156,7 +152,7 @@ export const pickWeather = (random = Math.random): Weather => {
 const recordFrom = <T,>(items: { id: string }[], value: T) => Object.fromEntries(items.map((item) => [item.id, value])) as Record<string, T>
 
 export const createInitialSnapshot = (): GameSnapshot => ({
-  version: 2,
+  version: 3,
   lastSaved: new Date().toISOString(),
   player: {
     name: "Barista",
@@ -174,6 +170,13 @@ export const createInitialSnapshot = (): GameSnapshot => ({
     ownedDecorations: { "plant-pot": 1 },
     equipment: { espressoMachine: 1, milkFrother: 1, coldBrewStation: 0, grinder: 1 },
   },
+  locations: {
+    "willow-square": { cafe: { name: "Juniper & Steam", decorations: [], ownedDecorations: { "plant-pot": 1 }, equipment: { espressoMachine: 1, milkFrother: 1, coldBrewStation: 0, grinder: 1 } }, inventory: Object.fromEntries(ingredients.map((ingredient) => [ingredient.id, ingredient.seasonal ? 0 : 5])), coins: 35 },
+    "riverside-market": { cafe: { name: "Riverside Market", decorations: [], ownedDecorations: {}, equipment: { espressoMachine: 1, milkFrother: 1, coldBrewStation: 0, grinder: 1 } }, inventory: Object.fromEntries(ingredients.map((ingredient) => [ingredient.id, 0])), coins: 25 },
+    "arts-district": { cafe: { name: "Arts District", decorations: [], ownedDecorations: {}, equipment: { espressoMachine: 1, milkFrother: 1, coldBrewStation: 0, grinder: 1 } }, inventory: Object.fromEntries(ingredients.map((ingredient) => [ingredient.id, 0])), coins: 25 },
+    "grand-avenue": { cafe: { name: "Grand Avenue", decorations: [], ownedDecorations: {}, equipment: { espressoMachine: 1, milkFrother: 1, coldBrewStation: 0, grinder: 1 } }, inventory: Object.fromEntries(ingredients.map((ingredient) => [ingredient.id, 0])), coins: 25 },
+  },
+  activeLocationId: chapters[0].locationId,
   inventory: Object.fromEntries(ingredients.map((ingredient) => [ingredient.id, ingredient.seasonal ? 0 : 5])),
   discoveredRecipes: getUnlockedRecipes(1).map((recipe) => recipe.id),
   recipeHistory: {},
@@ -183,7 +186,7 @@ export const createInitialSnapshot = (): GameSnapshot => ({
   catHappiness: recordFrom(cats, 75),
   catFriendship: recordFrom(cats, 0),
   catLevels: recordFrom(cats, 1),
-  progression: { reputation: 0, level: 1, dayNumber: 1, season: "spring", seasonDay: 1, milestones: [] },
+  progression: { reputation: 0, level: 1, dayNumber: 1, season: "spring", seasonDay: 1, milestones: [], finaleStatus: "locked" },
   weather: "sunny",
   nextWeather: "cloudy",
   dailySpecial: null,

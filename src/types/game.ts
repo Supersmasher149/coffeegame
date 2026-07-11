@@ -5,7 +5,9 @@ export type IngredientCategory = "bean" | "milk" | "tea" | "syrup" | "chocolate"
 export type Weather = "sunny" | "cloudy" | "rainy" | "stormy" | "snowy"
 export type Season = "spring" | "summer" | "autumn" | "winter"
 export type CustomerStatus = "waiting" | "preparing" | "served"
-export type AppScreen = "cafe" | "recipes" | "shop" | "cats" | "decorate" | "settings" | "summary"
+import type { LocationId } from "../data/progression"
+
+export type AppScreen = "cafe" | "map" | "recipes" | "shop" | "cats" | "decorate" | "settings" | "summary"
 
 export interface IngredientRequirement {
   ingredientId: string
@@ -162,6 +164,12 @@ export interface CafeState {
   equipment: Record<"espressoMachine" | "milkFrother" | "coldBrewStation" | "grinder", number>
 }
 
+export interface CafeLocationState {
+  cafe: CafeState
+  inventory: Record<string, number>
+  coins: number
+}
+
 export interface ProgressionState {
   reputation: number
   level: number
@@ -169,6 +177,7 @@ export interface ProgressionState {
   season: Season
   seasonDay: number
   milestones: string[]
+  finaleStatus: "locked" | "available" | "active" | "completed"
 }
 
 export interface SettingsState {
@@ -185,6 +194,8 @@ export interface GameSnapshot {
   lastSaved: string
   player: PlayerState
   cafe: CafeState
+  locations: Record<LocationId, CafeLocationState>
+  activeLocationId: LocationId
   inventory: Record<string, number>
   discoveredRecipes: string[]
   recipeHistory: Record<string, { bestQuality: number; timesServed: number; averageQuality: number }>

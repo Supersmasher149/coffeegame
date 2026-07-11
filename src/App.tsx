@@ -16,6 +16,7 @@ import RecipeBook from "./ui/RecipeBook"
 import SettingsScreen from "./ui/SettingsScreen"
 import ShopScreen from "./ui/ShopScreen"
 import TitleScreen from "./ui/TitleScreen"
+import TownMap from "./ui/TownMap"
 
 const CafeScreen = lazy(() => import("./ui/CafeScreen"))
 
@@ -114,6 +115,7 @@ export default function App() {
         {screen === "cafe" && !activeOrderId && !specialOpen && !dialogue && <Navigation />}
       </div>
       {screen === "recipes" && <RecipeBook />}
+      {screen === "map" && <TownMap />}
       {screen === "shop" && <ShopScreen />}
       {screen === "cats" && <CatCollection />}
       {screen === "decorate" && <DecorationScreen />}

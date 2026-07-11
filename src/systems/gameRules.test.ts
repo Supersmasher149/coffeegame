@@ -3,10 +3,10 @@ import { ASSIST_MASTERY_SERVES, calculateSale, canAutomateStep, canPlaceDecorati
 
 describe("game rules", () => {
   it("maps reputation thresholds to levels", () => {
-    expect(getReputationLevel(49)).toBe(1)
-    expect(getReputationLevel(50)).toBe(2)
-    expect(getReputationLevel(150)).toBe(3)
-    expect(getReputationLevel(1000)).toBe(6)
+    expect(getReputationLevel(34)).toBe(1)
+    expect(getReputationLevel(35)).toBe(2)
+    expect(getReputationLevel(700)).toBe(10)
+    expect(getReputationLevel(2450)).toBe(20)
   })
 
   it("scores drink accuracy and rewards a perfect favorite", () => {

@@ -7,6 +7,13 @@ import { gameStore } from "../store/gameStore"
 
 const colorNumber = (value: string) => Number.parseInt(value.replace("#", ""), 16)
 
+const locationPalette = {
+  "willow-square": { wall: 0xead8c2, floor: 0xb98562 },
+  "riverside-market": { wall: 0xcfe0dc, floor: 0x8b7162 },
+  "arts-district": { wall: 0xdccfe0, floor: 0x7d665f },
+  "grand-avenue": { wall: 0xe2d5b5, floor: 0x765344 },
+}
+
 const addLabel = (container: Container, text: string, x: number, y: number, size = 14, color = 0x4a3027) => {
   const label = new Text({ text, style: { fontFamily: "DM Sans, sans-serif", fontSize: size, fill: color, fontWeight: "600" } })
   label.anchor.set(0.5)
@@ -17,6 +24,7 @@ const addLabel = (container: Container, text: string, x: number, y: number, size
 const drawScene = (stage: Container, width: number, height: number) => {
   for (const child of stage.removeChildren()) child.destroy({ children: true })
   const state = gameStore.getState()
+  const palette = locationPalette[state.activeLocationId]
   const scale = Math.min(width / 960, height / 650)
   const ox = (width - 960 * scale) / 2
   const oy = (height - 650 * scale) / 2
@@ -27,9 +35,9 @@ const drawScene = (stage: Container, width: number, height: number) => {
 
   const background = new Graphics().roundRect(15, 20, 930, 600, 28).fill({ color: state.weather === "rainy" || state.weather === "stormy" ? 0xc9b89e : 0xe8d6b8 })
   room.addChild(background)
-  const wall = new Graphics().roundRect(20, 25, 920, 345, 24).fill({ color: state.progression.season === "spring" ? 0xead8c2 : state.progression.season === "summer" ? 0xe6d9b0 : state.progression.season === "autumn" ? 0xddc2a2 : 0xd4d7d2 })
+  const wall = new Graphics().roundRect(20, 25, 920, 345, 24).fill({ color: state.progression.season === "winter" ? 0xd4d7d2 : palette.wall })
   room.addChild(wall)
-  const floor = new Graphics().rect(20, 355, 920, 260).fill({ color: 0xb98562 })
+  const floor = new Graphics().rect(20, 355, 920, 260).fill({ color: palette.floor })
   for (let line = 0; line < 11; line += 1) floor.moveTo(20 + line * 92, 355).lineTo(20 + line * 92, 615).stroke({ color: 0xa97657, alpha: 0.5, width: 2 })
   room.addChild(floor)
 
@@ -111,6 +119,7 @@ export default function CafeCanvas() {
           weather: state.weather,
           season: state.progression.season,
           level: state.progression.level,
+          location: state.activeLocationId,
           cafe: state.cafe.name,
           decorations: state.cafe.decorations,
           customers: state.activeCustomers.map((customer) => [customer.id, customer.status]),

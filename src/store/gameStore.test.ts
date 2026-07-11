@@ -174,4 +174,31 @@ describe("game store", () => {
     gameStore.getState().removeDecoration(placedId)
     expect(gameStore.getState().catHappiness.mochi).toBe(75)
   })
+
+  it("keeps coins and pantry stock separate between neighborhood cafes", () => {
+    gameStore.setState((state) => ({
+      progression: { ...state.progression, level: 6, reputation: 280 },
+      player: { ...state.player, coins: 99 },
+      inventory: { ...state.inventory, "colombian-beans": 7 },
+    }))
+
+    gameStore.getState().switchLocation("riverside-market")
+    expect(gameStore.getState().player.coins).toBe(25)
+    expect(gameStore.getState().inventory["colombian-beans"]).toBe(0)
+
+    gameStore.getState().switchLocation("willow-square")
+    expect(gameStore.getState().player.coins).toBe(99)
+    expect(gameStore.getState().inventory["colombian-beans"]).toBe(7)
+  })
+
+  it("completes a five-star review only after meeting its service goals", () => {
+    gameStore.setState((state) => ({
+      activeLocationId: "grand-avenue",
+      progression: { ...state.progression, level: 20, reputation: 2450, finaleStatus: "active" },
+      dailyStats: { ...state.dailyStats, customersServed: 8, reputation: 12, bestDrink: { name: "Latte", quality: "perfect", accuracy: 0.9 } },
+      specialOpen: false,
+    }))
+    gameStore.getState().finishDay()
+    expect(gameStore.getState().progression.finaleStatus).toBe("completed")
+  })
 })

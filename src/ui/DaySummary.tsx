@@ -1,5 +1,6 @@
 import { catById } from "../data/cats"
 import { recipeById } from "../data/recipes"
+import { cafeLevels, getChapterForLevel } from "../data/progression"
 import { useGameStore } from "../store/gameStore"
 import styles from "./DaySummary.module.css"
 
@@ -9,8 +10,13 @@ export default function DaySummary() {
   const nextWeather = useGameStore((state) => state.nextWeather)
   const catHappiness = useGameStore((state) => state.catHappiness)
   const startNextDay = useGameStore((state) => state.startNextDay)
+  const startFiveStarReview = useGameStore((state) => state.startFiveStarReview)
+  const activeLocationId = useGameStore((state) => state.activeLocationId)
   const activeCats = Object.entries(catHappiness).filter(([id]) => catById[id]?.unlockLevel <= progression.level)
   const averageHappiness = activeCats.length ? Math.round(activeCats.reduce((sum, [, value]) => sum + value, 0) / activeCats.length) : 0
+  const level = cafeLevels[progression.level - 1]
+  const nextLevel = cafeLevels[progression.level]
+  const chapter = getChapterForLevel(progression.level)
 
   return (
     <div className={styles.summary} role="dialog" aria-modal="true" aria-labelledby="summary-title">
@@ -18,6 +24,7 @@ export default function DaySummary() {
       <section>
         <p className={styles.eyebrow}>The chairs are up, the lights are low</p>
         <h2 id="summary-title">Day {progression.dayNumber}, in the books.</h2>
+        <p className={styles.eyebrow}>Chapter: {chapter.name} / Cafe Level {level.level}: {level.name}</p>
         <div className={styles.stats}>
           <article><span>Customers served</span><strong>{stats.customersServed}</strong></article>
           <article><span>Drink revenue</span><strong>{stats.revenue}</strong><small>coins</small></article>
@@ -31,7 +38,10 @@ export default function DaySummary() {
         </div>
         <footer>
           <p>Tomorrow looks <strong>{nextWeather}</strong>. Fresh chalk, fresh cups, fresh stories.</p>
-          <button onClick={startNextDay} autoFocus>Start day {progression.dayNumber + 1}</button>
+          <p>{nextLevel ? `${nextLevel.reputationRequired - progression.reputation} reputation until ${nextLevel.majorUnlock}.` : progression.finaleStatus === "available" ? "Your five-star review day is ready." : "Five-star campaign complete."}</p>
+          {progression.finaleStatus === "available" && activeLocationId === "grand-avenue"
+            ? <button onClick={startFiveStarReview} autoFocus>Begin the five-star review day</button>
+            : <button onClick={startNextDay} autoFocus>{progression.finaleStatus === "completed" ? "Continue serving" : `Start day ${progression.dayNumber + 1}`}</button>}
         </footer>
       </section>
     </div>

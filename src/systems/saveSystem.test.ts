@@ -8,10 +8,26 @@ describe("save migration", () => {
     delete oldSave.dialogue
     delete oldSave.activeCustomers
     const migrated = migrateSnapshot(oldSave)
-    expect(migrated.version).toBe(2)
+    expect(migrated.version).toBe(3)
     expect(migrated.dialogue).toBeNull()
     expect(migrated.activeCustomers).toEqual([])
     expect(migrated.player.totalPerfectLatteArts).toBe(0)
+  })
+
+  it("moves a legacy cafe into Willow Square and derives its new level", () => {
+    const oldSave = createInitialSnapshot() as Partial<ReturnType<typeof createInitialSnapshot>>
+    oldSave.version = 2
+    delete oldSave.locations
+    delete oldSave.activeLocationId
+    oldSave.player = { ...oldSave.player!, coins: 91 }
+    oldSave.progression = { ...oldSave.progression!, reputation: 700, level: 5 }
+
+    const migrated = migrateSnapshot(oldSave)
+
+    expect(migrated.activeLocationId).toBe("willow-square")
+    expect(migrated.locations["willow-square"].coins).toBe(91)
+    expect(migrated.progression.level).toBe(10)
+    expect(migrated.progression.finaleStatus).toBe("locked")
   })
 
   it("converts legacy unlocked decorations into counted ownership", () => {

@@ -28,6 +28,8 @@ import type {
   PlacedDecoration,
   SettingsState,
 } from "../types/game"
+import type { LocationId } from "../data/progression"
+import { getDifficultyProfile, getUnlockedLocations } from "../data/progression"
 
 export interface GameRuntimeState {
   hydrated: boolean
@@ -42,6 +44,7 @@ export interface GameActions {
   newGame: (cafeName?: string) => void
   hydrate: (snapshot: GameSnapshot | null) => void
   setScreen: (screen: AppScreen) => void
+  switchLocation: (locationId: LocationId) => void
   tick: () => void
   spawnCustomer: (customerId?: string, recipeId?: string) => void
   acceptOrder: (orderId: string) => void
@@ -57,6 +60,7 @@ export interface GameActions {
   petCat: (catId: string) => void
   finishDay: () => void
   startNextDay: () => void
+  startFiveStarReview: () => void
   updateSettings: (settings: Partial<SettingsState>) => void
   dismissDialogue: () => void
   clearToast: () => void
@@ -89,6 +93,11 @@ const withoutActions = (state: GameState): GameSnapshot => ({
   lastSaved: state.lastSaved,
   player: state.player,
   cafe: state.cafe,
+  locations: {
+    ...state.locations,
+    [state.activeLocationId]: { cafe: state.cafe, inventory: state.inventory, coins: state.player.coins },
+  },
+  activeLocationId: state.activeLocationId,
   inventory: state.inventory,
   discoveredRecipes: state.discoveredRecipes,
   recipeHistory: state.recipeHistory,
@@ -118,11 +127,14 @@ const canMakeRecipe = (state: GameState, recipeId: string) => {
 const chooseOrder = (state: GameState, customerId: string): string | null => {
   const customer = customerById[customerId]
   const available = state.discoveredRecipes.map((id) => recipeById[id]).filter((recipe) => recipe && canMakeRecipe(state, recipe.id))
+  const difficulty = getDifficultyProfile(state.progression.level)
+  const complexPool = available.filter((recipe) => recipe.difficulty >= Math.min(3, difficulty.complexOrderChance >= 0.48 ? 2 : 3))
   if (state.dailySpecial && available.some((recipe) => recipe.id === state.dailySpecial) && Math.random() < 0.2) return state.dailySpecial
   const weatherTag = state.weather === "sunny" ? "cold" : state.weather === "rainy" || state.weather === "snowy" ? "hot" : null
   const weatherPool = weatherTag ? available.filter((recipe) => recipe.tags.includes(weatherTag)) : []
   if (weatherPool.length && Math.random() < 0.35) return weatherPool[Math.floor(Math.random() * weatherPool.length)].id
   const favorite = customer.favoriteDrinks.filter((id) => available.some((recipe) => recipe.id === id))
+  if (complexPool.length && Math.random() < difficulty.complexOrderChance) return complexPool[Math.floor(Math.random() * complexPool.length)].id
   const pool = favorite.length && Math.random() < 0.7 ? favorite : available.map((recipe) => recipe.id)
   return pool[Math.floor(Math.random() * pool.length)] ?? null
 }
@@ -144,7 +156,7 @@ const makeCustomer = (state: GameState, customerId: string, recipeId?: string): 
   const weatherCozy = state.weather === "rainy" || state.weather === "snowy" ? bonuses.cozy : 0
   const stormyPatience = state.weather === "stormy" ? 0.25 : 0
   const patienceBoost = bonuses.patience + weatherCozy + stormyPatience + getCatStrength(state, "greeter")
-  const maxPatience = Math.round(definition.patienceBase * (1 + patienceBoost))
+  const maxPatience = Math.round(definition.patienceBase * (1 + patienceBoost) * getDifficultyProfile(state.progression.level).patienceMultiplier)
   return {
     id: `${customerId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     customerId,
@@ -158,15 +170,27 @@ const makeCustomer = (state: GameState, customerId: string, recipeId?: string): 
   }
 }
 
+const resolveFinaleStatus = (state: GameState) => state.progression.finaleStatus !== "active"
+  ? state.progression.finaleStatus
+  : state.dailyStats.customersServed >= 8 && (state.dailyStats.bestDrink?.accuracy ?? 0) >= 0.87 && state.dailyStats.reputation >= 12
+    ? "completed"
+    : "available"
+
 const createActions = (set: (updater: (state: GameState) => Partial<GameState> | GameState) => void, get: () => GameState): GameActions => ({
-  newGame: (cafeName = "Juniper & Steam") => set(() => ({
-    ...createInitialSnapshot(),
-    ...runtimeDefaults,
-    hydrated: true,
-    started: true,
-    specialOpen: true,
-    cafe: { ...createInitialSnapshot().cafe, name: cafeName.trim() || "Juniper & Steam" },
-  } as GameState)),
+  newGame: (cafeName = "Juniper & Steam") => set(() => {
+    const snapshot = createInitialSnapshot()
+    const name = cafeName.trim() || "Juniper & Steam"
+    const cafe = { ...snapshot.cafe, name }
+    return {
+      ...snapshot,
+      ...runtimeDefaults,
+      hydrated: true,
+      started: true,
+      specialOpen: true,
+      cafe,
+      locations: { ...snapshot.locations, "willow-square": { ...snapshot.locations["willow-square"], cafe } },
+    } as GameState
+  }),
   hydrate: (snapshot) => set(() => {
     if (!snapshot) return { hydrated: true }
     const elapsedMinutes = Math.max(0, (Date.now() - new Date(snapshot.lastSaved).getTime()) / 60000)
@@ -187,6 +211,24 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     }
   }),
   setScreen: (screen) => set(() => ({ screen })),
+  switchLocation: (locationId) => set((state) => {
+    if (state.activeOrderId || state.activeCustomers.length || !getUnlockedLocations(state.progression.level).includes(locationId)) return { toast: "Finish serving this cafe before traveling." }
+    const locations = {
+      ...state.locations,
+      [state.activeLocationId]: { cafe: state.cafe, inventory: state.inventory, coins: state.player.coins },
+    }
+    const destination = locations[locationId]
+    return {
+      locations,
+      activeLocationId: locationId,
+      cafe: destination.cafe,
+      inventory: destination.inventory,
+      player: { ...state.player, coins: destination.coins },
+      screen: "cafe",
+      toast: `Now serving ${destination.cafe.name}.`,
+      lastSaved: new Date().toISOString(),
+    }
+  }),
   tick: () => set((state) => {
     if (!state.started || state.screen !== "cafe" || state.activeOrderId || state.specialOpen || state.dialogue || state.minuteOfDay >= 1080) return {}
     const minuteOfDay = state.minuteOfDay + 1
@@ -197,16 +239,18 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
       .filter((customer) => customer.status === "served" ? (customer.cleanupRemaining ?? 0) > 0 : customer.patience > 0)
     const leftCount = state.activeCustomers.filter((customer) => customer.status === "waiting" && customer.patience <= 1).length
     if (minuteOfDay >= 1080) {
-      return { minuteOfDay: 1080, activeCustomers: waiting, screen: "summary", toast: "The last cup is washed. Time to close.", lastSaved: new Date().toISOString() }
+      const finaleStatus = resolveFinaleStatus(state)
+      return { minuteOfDay: 1080, activeCustomers: waiting, screen: "summary", progression: { ...state.progression, finaleStatus }, toast: finaleStatus === "completed" ? "Five stars. The whole city is talking." : "The last cup is washed. Time to close.", lastSaved: new Date().toISOString() }
     }
     const phase = getTimePhase(minuteOfDay)
     const baseChance = spawnChanceByPhase[phase]
     const weatherFactor = state.weather === "sunny" ? 1.1 : state.weather === "stormy" ? 0.7 : 1
+    const difficultyFactor = getDifficultyProfile(state.progression.level).rushMultiplier
     const decorationAttraction = getDecorationBonuses(state.cafe.decorations).attract
     const capacity = getCafeCapacity(state.cafe.decorations)
     const spawnGap = minuteOfDay - state.lastSpawnMinute
     const forcedSpawn = spawnGap >= MAX_SPAWN_GAP
-    const shouldSpawn = waiting.length < capacity && spawnGap >= MIN_SPAWN_GAP && (Math.random() < baseChance * weatherFactor * (1 + decorationAttraction) || forcedSpawn)
+    const shouldSpawn = waiting.length < capacity && spawnGap >= MIN_SPAWN_GAP && (Math.random() < baseChance * weatherFactor * difficultyFactor * (1 + decorationAttraction) || forcedSpawn)
     let activeCustomers = waiting
     let lastSpawnMinute = state.lastSpawnMinute
     if (shouldSpawn) {
@@ -340,7 +384,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
         totalPerfectLatteArts,
       },
       cafe: { ...state.cafe, ownedDecorations },
-      progression: { ...state.progression, reputation, level, milestones },
+      progression: { ...state.progression, reputation, level, milestones, finaleStatus: level >= 20 && state.progression.finaleStatus === "locked" ? "available" : state.progression.finaleStatus },
       customerLoyalty: { ...state.customerLoyalty, [definition.id]: Math.min(5, (state.customerLoyalty[definition.id] ?? 0) + (sale.satisfaction >= 0.9 ? 1 : 0)) },
       customerVisits: { ...state.customerVisits, [definition.id]: (state.customerVisits[definition.id] ?? 0) + 1 },
       dialogueSeen: dialogueEvent && !dialogueAlreadySeen ? { ...state.dialogueSeen, [definition.id]: [...(state.dialogueSeen[definition.id] ?? []), dialogueEvent.text] } : state.dialogueSeen,
@@ -424,7 +468,7 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
     const reactions = ["purrs like a tiny espresso machine", "rolls over dramatically", "offers a very slow blink", "chirps and bumps your hand"]
     return { catHappiness: { ...state.catHappiness, [catId]: Math.min(100, (state.catHappiness[catId] ?? 70) + 5) }, catFriendship: { ...state.catFriendship, [catId]: Math.min(100, (state.catFriendship[catId] ?? 0) + 3) }, toast: `${cat.name} ${reactions[Math.floor(Math.random() * reactions.length)]}.`, lastSaved: new Date().toISOString() }
   }),
-  finishDay: () => set(() => ({ screen: "summary", minuteOfDay: 1080, activeOrderId: null, lastSaved: new Date().toISOString() })),
+  finishDay: () => set((state) => ({ screen: "summary", minuteOfDay: 1080, activeOrderId: null, progression: { ...state.progression, finaleStatus: resolveFinaleStatus(state) }, lastSaved: new Date().toISOString() })),
   startNextDay: () => set((state) => {
     const next = createNextDay(withoutActions(state))
     if (next.progression.dayNumber >= 8 && !next.progression.milestones.includes("dedicated-owner")) {
@@ -432,6 +476,18 @@ const createActions = (set: (updater: (state: GameState) => Partial<GameState> |
       next.cafe.ownedDecorations = { ...next.cafe.ownedDecorations, "framed-art": (next.cafe.ownedDecorations["framed-art"] ?? 0) + 1 }
     }
     return { ...next, screen: "cafe", minuteOfDay: 360, activeCustomers: [], activeOrderId: null, specialOpen: true, dialogue: null, lastSpawnMinute: 345 }
+  }),
+  startFiveStarReview: () => set((state) => {
+    if (state.progression.finaleStatus !== "available" || state.activeLocationId !== "grand-avenue") return {}
+    const next = createNextDay(withoutActions(state))
+    return {
+      ...next,
+      screen: "cafe",
+      specialOpen: true,
+      progression: { ...next.progression, finaleStatus: "active" },
+      toast: "The critic arrives tomorrow. Make every cup count.",
+      lastSpawnMinute: 345,
+    }
   }),
   updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings }, lastSaved: new Date().toISOString() })),
   dismissDialogue: () => set(() => ({ dialogue: null, lastSaved: new Date().toISOString() })),
